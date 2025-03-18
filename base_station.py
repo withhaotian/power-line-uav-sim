@@ -15,23 +15,26 @@ receive_data(drone_id, data)：接收无人机发送的数据
 process_data(data)：处理巡检数据（例如分析视频）
 """
 
+from utils import calculate_distance
+
 class BaseStation:
-    def __init__(self, position):
+    def __init__(self, base_id, position, coverage_radius):
+        self.base_id = base_id
         self.position = position
         self.drones = []
         self.tasks = []
         self.data_storage = []
+        self.coverage_radius = coverage_radius  # 覆盖半径
 
-    def assign_task(self, drone):
-        if self.tasks:
-            task = self.tasks.pop(0)
-            task.update_status("assigned")
-            return task
-        return None
-
+    def is_in_coverage(self, drone_position):
+        distance = calculate_distance(self.position, drone_position)
+        return distance <= self.coverage_radius
+    
     def receive_data(self, drone_id, data):
         self.data_storage.append((drone_id, data))
         self.process_data(data)
 
     def process_data(self, data):
-        print(f"Processing data: {data}")
+        self.tasks.append(data)
+        print(f"基站 {self.base_id} 处理: {data}")
+        self.tasks.pop(0)

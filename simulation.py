@@ -16,12 +16,13 @@ import datetime
 
 def run_simulation():
     env = Environment(SPACE_SIZE)
-    env.initialize(num_drones=3, num_stations=5)
+    env.initialize(num_drones=10, num_stations=5, num_base_stations=2)
     logger = Logger()
 
     for step in range(SIMULATION_STEPS):
+        print("----------| Step: {} |----------".format(step))
         env.update()
-        logger.log(step, env.drones, env.power_stations)
+        logger.log(step, env.drones, env.power_stations, env.base_stations)
     logger.save("logs/log_{}.txt".format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")))
 
 if __name__ == "__main__":

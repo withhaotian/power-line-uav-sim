@@ -26,6 +26,7 @@ class Drone:
         self.speed = speed
         self.battery = battery_capacity
         self.task = None
+        self.base_station = None
 
     def request_task(self, base_station):
         self.task = base_station.assign_task(self)
@@ -40,7 +41,7 @@ class Drone:
 
     def inspect(self, power_station):
         if self.position == power_station.position:
-            data = f"Video data from {power_station.station_id}"
+            data = f"来自电站 {power_station.station_id} 的4K视频数据"
             self.battery -= 5  # 巡检固定耗电
             return data
         return None

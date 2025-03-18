@@ -12,7 +12,7 @@ import math
 import random
 
 def calculate_distance(pos1, pos2):
-    return math.sqrt(sum((p1 - p2) ** 2 for p1, p2 in zip(pos1, pos2)))
+    return math.sqrt(sum((p1 - p2) ** 2 for p1, p2 in zip(pos1[:2], pos2[:2])))
 
 def random_position(size):
     return [random.uniform(0, s) for s in size]

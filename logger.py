@@ -8,7 +8,7 @@ class Logger:
     def __init__(self):
         self.logs = []
 
-    def log(self, step, drones, power_stations):
+    def log(self, step, drones, power_stations, base_stations):
         log_entry = f"Step {step}:\n"
         for drone in drones:
             log_entry += f"Drone {drone.drone_id}: Pos={drone.position}, Battery={drone.battery}, Task={drone.task.task_id if drone.task else None}\n"
