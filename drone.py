@@ -27,6 +27,7 @@ class Drone:
         self.battery = battery_capacity
         self.task = None
         self.base_station = None
+        self.position_history = None
 
     def request_task(self, base_station):
         self.task = base_station.assign_task(self)
