@@ -133,7 +133,7 @@ class Environment:
         self.obstacles = {tuple(station.position) for station in self.power_stations}  # 电站作为障碍物
         self.assign_clusters_to_drones()  # 分配簇
         for drone in self.drones:
-            cluster = self.clusters[drone.drone_id]
+            cluster = self.clusters[drone.cluster_id]
             path = self.plan_drone_path(drone, cluster)
             drone.position_history = path  # 更新路径历史
             print(f"无人机 {drone.drone_id} 的初始路径轨迹：", path)
@@ -200,12 +200,21 @@ class Environment:
                 edge_id += 1
         
         # 选择度数为1的节点作为出发点
-        start_tower = None
-        for idx in tower_indices:
-            if len(graph[idx]) == 1:
-                start_tower = idx
-                break
-        if start_tower is None:
+        # start_tower = None
+        # for idx in tower_indices:
+        #     if len(graph[idx]) == 1:
+        #         start_tower = idx
+        #         break
+        # if start_tower is None:
+        #     start_tower = next(iter(tower_indices))  # 如果没有度数为1的节点，选择任意节点
+        
+        # 选择距离充电站最近的度数为1的节点作为出发点
+        start_pos = drone.position_history[0]  # 充电站位置
+        degree_one_nodes = [idx for idx in tower_indices if len(graph[idx]) == 1]
+        if degree_one_nodes:
+            start_tower = min(degree_one_nodes, 
+                            key=lambda idx: calculate_2d_distance(start_pos, tower_positions[idx]))
+        else:
             start_tower = next(iter(tower_indices))  # 如果没有度数为1的节点，选择任意节点
         
         # 初始化路径，从充电站到起点

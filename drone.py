@@ -15,6 +15,7 @@ class Drone:
         self.battery = battery_capacity
         self.base_station = None
         self.position_history = None
+        self.cluster_id = None
         self.trans_demand = 10  # 传输需求
         self.comp_demand = 20   # 计算需求  
 
