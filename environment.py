@@ -33,6 +33,8 @@ class Environment:
 
         self.logger = logger
 
+        self.pricing_threshold = CONVERGENCE_THRESHOLD  # 价格收敛阈值
+
     def initialize(self, num_drones, num_stations, num_base_stations):
         """
         初始化环境，创建基站、无人机和电站，并进行分配。
@@ -137,6 +139,8 @@ class Environment:
             path = self.plan_drone_path(drone, cluster)
             drone.position_history = path  # 更新路径历史
             print(f"无人机 {drone.drone_id} 的初始路径轨迹：", path)
+        
+        ''' 设置数据负载阈值'''
 
     def assign_clusters_to_drones(self):
         """为每个无人机分配距离最近的未认领簇"""
@@ -330,4 +334,126 @@ class Environment:
         """
         更新环境状态，例如无人机位置和任务状态。
         """
-        pass
+        
+        iteration = 0
+        max_iterations = MAX_ITERATIONS  
+        while iteration < max_iterations:
+            iteration += 1
+            print(f"==== 迭代次数: {iteration} ====")
+
+            ''' 记录上一次的路径和定价'''
+            old_paths = [drone.position_history[:] for drone in self.drones]
+            old_prices = [[bs.price_comp, bs.price_trans] for bs in self.base_stations]
+
+            avg_utility = []  # 总平均收益
+            avg_cost = []  # 总平均成本
+
+            total_cost_iter = 0 # 迭代成本
+            ''' 无人机侧：执行巡检飞行任务与任务卸载'''
+            for drone in self.drones:
+                new_path = []
+                
+                drone.reset_request_history()  # 重置请求历史
+
+                current_data = 0  # 当前采集的数据量
+                i = 0
+                start_pos_idx = 0  # 起点索引
+                end_pos_idx = 0  # 终点索引
+                new_path.append(drone.position_history[0])  # 添加起点
+                while i < len(drone.position_history) - 2:
+                    start_pos = drone.position_history[i]
+                    end_pos = drone.position_history[i + 1]
+                    end_pos_idx = i + 1
+                    new_path.append(end_pos)
+                    
+                    # 计算飞行距离
+                    dist = calculate_2d_distance(start_pos, end_pos)
+                    # print(f"无人机 {drone.drone_id} 飞行 {dist:.2f} 米")
+                    
+                    # 判断是否为回溯（简单假设：如果下一步回到上一个分岔点，则为回溯）
+                    is_backtrack = False
+                    if i > 0 and len(new_path) > 2:
+                        if any((end_pos[0] == p[0] and end_pos[1] == p[1]) for p in new_path[:-1]):
+                            is_backtrack = True
+                    
+                    # 数据采集（非回溯时）
+                    if not is_backtrack:
+                        current_data += dist * DATA_RATE  # 假设数据量与距离成正比
+                    
+                    # 检查是否需要任务卸载
+                    if current_data > drone.data_thres:
+                        # 记录当前位置
+                        current_pos = end_pos
+                        # 选择最优基站
+                        best_base, min_cost, best_new_pos = drone.select_best_base(current_pos, start_pos_idx, end_pos_idx, self.base_stations)
+                        # print( f"无人机 {drone.drone_id} 选择基站 {best_base.base_id} 作为卸载目标，成本 {min_cost:.2f}")
+                        total_cost_iter += min_cost
+                        # 更新基站负载
+                        best_base.load += 1
+                        # 插入子路径
+                        if best_new_pos:
+                            new_path.append(best_new_pos)
+                            new_path.append(end_pos)
+                        current_data = 0  # 重置数据量
+                        start_pos_idx = end_pos_idx
+                    
+                    i += 1
+                
+                new_path.append(drone.position_history[-1])  # 添加终点
+
+                if iteration == max_iterations:
+                    drone.position_history = new_path
+            
+            avg_val = total_cost_iter / len(self.drones)  # 平均成本
+            print(f"无人机平均成本：{avg_val:.2f}")
+            avg_cost.append(avg_val)
+            
+            total_utility_iter = 0  # 迭代收益
+            ''' 基站侧：执行巡检飞行任务与任务卸载'''
+            for base_station in self.base_stations:
+                # 计算负载率
+                load_rate = base_station.load / MAX_LOAD
+                
+                # 计算收益（简化假设）
+                utility = base_station.calculate_utility(self.drones)
+                # print(f"基站 {base_station.base_id} 收益 {utility:.2f}，负载数 {base_station.load:.2f}")
+                total_utility_iter += utility
+
+                # 定价更新（基于收益梯度,通过梯度上升法）
+                # 当价格越高，可能卸载的任务量越低，因此边际效用相应下降
+                marginal_utility_trans = base_station.load - KSI * base_station.load * (base_station.price_trans - PRICE_TRANS_BOUND[0])
+                marginal_utility_comp = base_station.load - KSI * base_station.load * (base_station.price_comp - PRICE_COMP_BOUND[0])
+                # 采用双向梯度更新，若边际效用为负，则下降，否则上升
+                new_price_trans = base_station.price_trans + ETA * marginal_utility_trans
+                new_price_trans = max(PRICE_TRANS_BOUND[0], min(new_price_trans, PRICE_TRANS_BOUND[1]))
+                
+                new_price_comp = base_station.price_comp + ETA * marginal_utility_comp
+                new_price_comp = max(PRICE_COMP_BOUND[0], min(new_price_comp, PRICE_COMP_BOUND[1]))
+                # print('---------------')
+                # print(f"基站原传输价格：{base_station.price_trans:.2f}, 边际效用：{marginal_utility_trans:.2f}, 更新后价格：{new_price_trans:.2f}")
+                # print(f"基站原计算价格：{base_station.price_comp:.2f}, 边际效用：{marginal_utility_comp:.2f}, 更新后价格：{new_price_comp:.2f}")
+                # print('---------------')
+               
+                base_station.price_trans = new_price_trans
+                base_station.price_comp = new_price_comp
+
+                # 重置负载
+                base_station.load = 0
+            
+            avg_val = total_utility_iter / len(self.base_stations)  # 平均收益
+            print(f"基站平均收益：{avg_val:.2f}")
+            avg_utility.append(avg_val)
+
+            # 检查收敛
+            price_change = max(max(abs(bs.price_comp - old_prices[i][0]), 
+                                  abs(bs.price_trans - old_prices[i][1])) 
+                              for i, bs in enumerate(self.base_stations))
+            path_stable = all(old_paths[i] == self.drones[i].position_history 
+                             for i in range(len(self.drones)))
+            
+            if price_change < self.pricing_threshold and path_stable:
+                print(f"收敛于迭代 {iteration}")
+                break
+                
+            old_prices = [[bs.price_comp, bs.price_trans] for bs in self.base_stations]
+            old_paths = new_path

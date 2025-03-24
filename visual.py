@@ -20,20 +20,20 @@ def visualize_2d(env, save_fig = False):
         # ax.text(station.position[0], station.position[1], f'PS {station.station_id}', color='blue')
 
     # 绘制 MST 电线连接
-    # colors = list(iter(plt.cm.viridis(np.linspace(0, 1, len(env.drones)))))
-    # mst_edges = generate_mst(station_positions)
-    # for i, cluster in enumerate(env.clusters):
-    #     def is_target_in_clusters(target, clusters):
-    #         for i, cluster in enumerate(clusters):
-    #             if (target[0] == cluster[0] and target[1] == cluster[1]) or (target[0] == cluster[1] and target[1] == cluster[0]):
-    #                 return True  # 存在于第 i 个簇中
-    #         return False  # 未找到
-    #     for u, v in mst_edges:
-    #         is_this_cluster = is_target_in_clusters([list(station_positions[u]), list(station_positions[v])], cluster)
-    #         if is_this_cluster:
-    #             ax.plot([station_positions[u][0], station_positions[v][0]],
-    #                     [station_positions[u][1], station_positions[v][1]], 
-    #                     color=colors[i], linestyle='-', linewidth=1.5, alpha=0.7, zorder=15)
+    colors = list(iter(plt.cm.viridis(np.linspace(0, 1, len(env.drones)))))
+    mst_edges = generate_mst(station_positions)
+    for i, cluster in enumerate(env.clusters):
+        def is_target_in_clusters(target, clusters):
+            for i, cluster in enumerate(clusters):
+                if (target[0] == cluster[0] and target[1] == cluster[1]) or (target[0] == cluster[1] and target[1] == cluster[0]):
+                    return True  # 存在于第 i 个簇中
+            return False  # 未找到
+        for u, v in mst_edges:
+            is_this_cluster = is_target_in_clusters([list(station_positions[u]), list(station_positions[v])], cluster)
+            if is_this_cluster:
+                ax.plot([station_positions[u][0], station_positions[v][0]],
+                        [station_positions[u][1], station_positions[v][1]], 
+                        color=colors[i], linestyle='-', linewidth=1.5, alpha=0.7, zorder=15)
     
     # 绘制无人机路径
     colors = iter(plt.cm.rainbow(np.linspace(0, 1, len(env.drones))))
@@ -55,7 +55,7 @@ def visualize_2d(env, save_fig = False):
         # 基站标记
         ax.scatter(base.position[0], base.position[1], c='red', marker='s', s=100, edgecolors='black', linewidth=1.5,
                    label='Base Station' if 'Base Station' not in ax.get_legend_handles_labels()[1] else "", zorder=10)
-        # ax.text(base.position[0], base.position[1], f'BS {base.base_id}', color='red', fontsize=26, fontweight='bold')
+        ax.text(base.position[0], base.position[1], f'BS {base.base_id}', color='red', fontsize=10, fontweight='bold')
         
         # 覆盖范围圆圈
         circle = Circle((base.position[0], base.position[1]), COVERAGE_RADIUS, 

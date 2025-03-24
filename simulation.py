@@ -14,10 +14,10 @@ def run_simulation():
     logger = Logger()
     env = Environment(SPACE_SIZE, logger)
     env.initialize(num_drones=4, num_stations=20, num_base_stations=9)
+    env.run()
 
-    visualize_2d(env)
+    # visualize_2d(env)
 
-    # env.run()
     # logger.log(env.drones, env.power_stations, env.base_stations)
     # logger.save("logs/log_{}.txt".format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")))
 

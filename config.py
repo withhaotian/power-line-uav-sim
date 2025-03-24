@@ -23,11 +23,20 @@ DRONE_SITES = [
     [2000, 3500, 1]
 ]
 
-ALPHA = 0.1  # 水平距离能耗系数
-BETA = 0.2   # 垂直距离能耗系数
-MU = 1.0     # 基站负载惩罚系数
-MAX_LOAD = 5    # 基站最大负载（单位资源）
-P_TRANS = 0.5  # 传输价格（单位资源）
-P_COMP = 0.8   # 计算价格（单位资源）
-MAX_ITERATIONS = 100  # 联合优化最大迭代次数
+ALPHA = 10.0  # 水平距离能耗系数
+BETA = 2.0   # 垂直距离能耗系数
+MU = 50.0     # 基站负载惩罚系数
+MAX_LOAD = 3.0    # 基站最大负载（单位资源）
+MAX_ITERATIONS = 200  # 联合优化最大迭代次数
 CONVERGENCE_THRESHOLD = 0.01  # 收敛阈值
+
+DATA_THRES = 100   # 数据阈值（单位字节）
+DATA_RATE = 0.8      # 数据请求速率
+TRANS_DEMAND = DATA_THRES*8   # 传输需求（单位资源）
+COMP_DEMAND = 100     # 计算需求（单位资源）
+
+PRICE_COMP_BOUND = [0.5, 50]  # 计算资源价格范围（单位元/单位资源）
+PRICE_TRANS_BOUND = [1, 100]  # 传输资源价格范围（单位元/单位资源）
+
+ETA = 0.4   # 价格调整梯度参数
+KSI = 0.8   # 调节边际收益反馈力度
