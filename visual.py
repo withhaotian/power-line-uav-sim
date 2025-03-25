@@ -3,7 +3,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Circle
 import numpy as np
 from environment import Environment
-from config import SIMULATION_STEPS, SPACE_SIZE
+from config import SPACE_SIZE
 from utils import *
 
 # 设置全局字体为 Helvetica，并将默认字体大小设为 26
@@ -33,14 +33,14 @@ def visualize_2d(env, save_fig = False):
             if is_this_cluster:
                 ax.plot([station_positions[u][0], station_positions[v][0]],
                         [station_positions[u][1], station_positions[v][1]], 
-                        color=colors[i], linestyle='-', linewidth=1.5, alpha=0.7, zorder=15)
+                        color='black', linestyle='-', linewidth=2, alpha=0.3, zorder=11)
     
     # 绘制无人机路径
-    colors = iter(plt.cm.rainbow(np.linspace(0, 1, len(env.drones))))
+    colors = iter(plt.cm.rainbow(np.linspace(0.4, 0.8, len(env.drones))))
     for drone in env.drones:
         path = drone.position_history
         color = next(colors)
-        ax.plot([p[0] for p in path], [p[1] for p in path], color=color, linestyle='--', linewidth=2, alpha=0.9, zorder=10)
+        ax.plot([p[0] for p in path], [p[1] for p in path], color=color, linestyle='-', linewidth=2, alpha=0.6, zorder=10)
 
         arrow_step = max(len(path) // 20, 1)  # 控制箭头密度
         for i in range(0, len(path) - 1, arrow_step):
@@ -48,7 +48,7 @@ def visualize_2d(env, save_fig = False):
             y = path[i][1]
             dx = path[i + 1][0] - x
             dy = path[i + 1][1] - y
-            ax.quiver(x, y, dx, dy, angles='xy', scale_units='xy', scale=1, color=color, width=0.005, headwidth=4, headlength=6)
+            ax.quiver(x, y, dx, dy, angles='xy', scale_units='xy', scale=1, color=color, linestyle='--', width=0.005, headwidth=4, headlength=6)
 
     # 绘制基站位置及其覆盖范围圆圈
     for base in env.base_stations:
@@ -74,6 +74,7 @@ def visualize_2d(env, save_fig = False):
     ax.set_ylim(0, SPACE_SIZE[1])
     ax.tick_params(axis='both', which='major', labelsize=20)  # 设置刻度大小为 26
     ax.set_aspect('equal', adjustable='box')
+    # plt.grid()
     plt.legend(fontsize=20, ncol=2, bbox_to_anchor=(0.46, 1.2),loc='upper center', frameon=True)
     plt.tight_layout()
     if save_fig:

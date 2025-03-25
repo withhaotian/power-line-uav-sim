@@ -5,15 +5,16 @@ Simulation.py - 仿真主程序
 """
 
 from environment import Environment
-from config import SIMULATION_STEPS, SPACE_SIZE
+from config import SPACE_SIZE
 from logger import Logger
 import datetime
 from visual import visualize_2d, visualize_3d
+from utils import *
 
 def run_simulation():
     logger = Logger()
     env = Environment(SPACE_SIZE, logger)
-    env.initialize(num_drones=4, num_stations=20, num_base_stations=9)
+    env.initialize(num_drones=NUM_DRONES, num_stations=NUM_POWER_STATIONS, num_base_stations=NUM_BASE_STATIONS)
     env.run()
 
     # visualize_2d(env)

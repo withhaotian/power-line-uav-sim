@@ -16,8 +16,12 @@ class BaseStation:
         self.coverage_radius = coverage_radius  # 覆盖半径
         self.load = 0  # 当前负载
         self.resources = {'trans': 1000, 'comp': 1000}  # 可用资源
-        self.price_trans = random.uniform(PRICE_TRANS_BOUND[0], PRICE_TRANS_BOUND[1])  # 传输费用
-        self.price_comp = random.uniform(PRICE_COMP_BOUND[0], PRICE_COMP_BOUND[1])  # 计算费用
+        self.price_trans = PRICE_TRANS_BOUND[0]  # 传输费用
+        self.price_comp = PRICE_COMP_BOUND[0]  # 计算费用
+
+        self.eta = random.uniform(*ETA)
+        self.ksi = random.uniform(*KSI)
+        self.mu = random.uniform(*MU)
 
     def is_in_coverage(self, drone_position):
         distance = calculate_3d_distance(self.position, drone_position)
@@ -42,9 +46,10 @@ class BaseStation:
                     trans_total += task[0]
                     comp_total += task[1]
         
-        utility += self.price_trans * trans_total + self.price_comp * comp_total
+        utility = self.price_trans * trans_total + self.price_comp * comp_total
         # 惩罚项（假设负数为负载超限，简化处理）
-        overload = max(0, self.load - MAX_LOAD)  # 假设最大负载为 5
-        utility -= MU * overload
+        overload = max(0, self.load - MAX_LOAD)  # 假设最大负载
+        # print(f"惩罚项: {MU * overload}")
+        utility -= self.mu * overload
         
         return utility

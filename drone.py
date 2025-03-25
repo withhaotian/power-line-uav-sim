@@ -80,21 +80,57 @@ class Drone:
         min_cost = float('inf')
         best_bs = None
         best_new_pos = None
-        for bs in base_stations:
-            if bs.is_in_coverage(curr_pos):
-                cost = self.calculate_cost(bs, start_pos_idx, end_pos_idx, curr_pos)
-                if cost < min_cost:
-                    min_cost = cost
-                    best_bs = bs
-                    best_new_pos = None
+        if METHOD == 'ours':
+            for bs in base_stations:
+                if bs.is_in_coverage(curr_pos):
+                    cost = self.calculate_cost(bs, start_pos_idx, end_pos_idx, curr_pos)
+                    if cost < min_cost:
+                        min_cost = cost
+                        best_bs = bs
+                        best_new_pos = None
+                else:
+                    # 若当前基站不在覆盖范围内，则尝试将无人机移动到刚好进入覆盖范围时的三维坐标
+                    new_pos = self.get_minimal_move_point(curr_pos, bs.position)
+                    cost = self.calculate_cost(bs, start_pos_idx, end_pos_idx, curr_pos, new_pos)
+                    if cost < min_cost:
+                        min_cost = cost
+                        best_bs = bs
+                        best_new_pos = new_pos
+        elif METHOD == 'random':
+            best_bs = random.choice(base_stations)
+            if best_bs.is_in_coverage(curr_pos):
+                best_new_pos = None
             else:
-                # 若当前基站不在覆盖范围内，则尝试将无人机移动到刚好进入覆盖范围时的三维坐标
-                new_pos = self.get_minimal_move_point(curr_pos, bs.position)
-                cost = self.calculate_cost(bs, start_pos_idx, end_pos_idx, curr_pos, new_pos)
-                if cost < min_cost:
-                    min_cost = cost
+                best_new_pos = self.get_minimal_move_point(curr_pos, best_bs.position)
+            min_cost = self.calculate_cost(best_bs, start_pos_idx, end_pos_idx, curr_pos, best_new_pos)
+        elif METHOD == 'distance':
+            # 选择距离最近的基站作为selected_bs
+            min_dist = float('inf')
+            for bs in base_stations:
+                dist = calculate_3d_distance(self.position, bs.position)
+                if dist < min_dist:
+                    min_dist = dist
                     best_bs = bs
-                    best_new_pos = new_pos
+            if best_bs.is_in_coverage(curr_pos):
+                best_new_pos = None
+            else:
+                best_new_pos = self.get_minimal_move_point(curr_pos, best_bs.position)
+            min_cost = self.calculate_cost(best_bs, start_pos_idx, end_pos_idx, curr_pos, best_new_pos)
+        elif METHOD == 'price':
+            # 选择价格最低的基站作为selected_bs
+            min_price = float('inf')
+            for bs in base_stations:
+                if bs.price_comp + bs.price_trans < min_price:
+                    min_price = bs.price_comp + bs.price_trans
+                    best_bs = bs
+            if best_bs.is_in_coverage(curr_pos):
+                best_new_pos = None
+            else:
+                best_new_pos = self.get_minimal_move_point(curr_pos, best_bs.position)
+            min_cost = self.calculate_cost(best_bs, start_pos_idx, end_pos_idx, curr_pos, best_new_pos)
+        else:
+            raise ValueError('Invalid method')
+        
         self.base_station = best_bs
         return best_bs, min_cost, best_new_pos
 
@@ -129,3 +165,9 @@ class Drone:
 
     def reset_request_history(self):
         self.request_history = []
+    
+    def reset_battery(self):
+        self.battery = BATTERY_CAPACITY
+    
+    def reset_trans_demand(self):
+        self.trans_demand = 0
