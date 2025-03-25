@@ -179,7 +179,7 @@ class Environment:
                 raise ValueError("没有可分配的簇给无人机！")
     
     def plan_drone_path(self, drone, cluster):
-        """为无人机规划遍历簇内所有边的优化路径"""
+        """为无人机规划遍历簇内所有边的优化路径，并优化回溯"""
         # 电力塔位置字典
         tower_positions = {i: station.position for i, station in enumerate(self.power_stations)}
         
@@ -204,15 +204,6 @@ class Environment:
                 edge_map[(v, u)] = edge_id
                 edge_id += 1
         
-        # 选择度数为1的节点作为出发点
-        # start_tower = None
-        # for idx in tower_indices:
-        #     if len(graph[idx]) == 1:
-        #         start_tower = idx
-        #         break
-        # if start_tower is None:
-        #     start_tower = next(iter(tower_indices))  # 如果没有度数为1的节点，选择任意节点
-        
         # 选择距离充电站最近的度数为1的节点作为出发点
         start_pos = drone.position_history[0]  # 充电站位置
         degree_one_nodes = [idx for idx in tower_indices if len(graph[idx]) == 1]
@@ -230,9 +221,14 @@ class Environment:
         
         # 遍历所有边
         visited_edges = set()  # 已访问的边索引
+        fork_stack = []  # 分岔点栈，存储 (节点索引, 位置, 深度)
         
-        def traverse_edges(current):
-            """基于边的 DFS，确保覆盖所有边"""
+        def traverse_edges(current, parent=None, depth=0):
+            """基于边的 DFS，确保覆盖所有边，并优化回溯"""
+            # 如果当前节点是分岔点（度数 > 2），记录到栈中
+            if len(graph[current]) > 2 and (parent is None or len(graph[current]) - 1 > 1):
+                fork_stack.append((current, path[-1], depth))
+            
             # 检查当前节点的所有邻边
             for neighbor, edge_id in graph[current]:
                 if edge_id not in visited_edges:
@@ -241,7 +237,18 @@ class Environment:
                     a_star_path = self.a_star_search(path[-1], tower_positions[neighbor], graph, tower_positions)
                     if a_star_path:
                         path.extend(a_star_path[1:])  # 跳过起点
-                    traverse_edges(neighbor)
+                    traverse_edges(neighbor, current, depth + 1)
+            
+            # 回溯优化：到达叶子节点时检查是否直接飞回分岔点
+            if fork_stack and parent is not None and len(graph[current]) == 1 and depth > 1:
+                last_fork_idx, last_fork_pos, fork_depth = fork_stack[-1]
+                if depth - fork_depth > 1:  # 分支深度大于1
+                    # 由于 MST 无直接边，假设允许直飞，插入直接路径
+                    direct_path = [path[-1], last_fork_pos]  # 直接从当前节点飞回分岔点
+                    path.extend(direct_path[1:])  # 添加分岔点位置
+                    # 从分岔点继续遍历剩余分支
+                    traverse_edges(last_fork_idx, None, fork_depth)
+                    return  # 避免重复回溯
         
         traverse_edges(start_tower)
         
@@ -263,14 +270,13 @@ class Environment:
             a_star_path = self.a_star_search(tower_positions[start_node], tower_positions[end_node], graph, tower_positions)
             if a_star_path:
                 path.extend(a_star_path[1:])
-            # 从新位置继续遍历
             traverse_edges(end_node)
         
         # 选择最近的充电站
         last_pos = path[-1]
         min_dist = float('inf')
         nearest_station = None
-        for station in DRONE_SITES:  # 假设 charging_stations 已定义
+        for station in DRONE_SITES:  # 假设 DRONE_SITES 已定义为充电站列表
             dist = calculate_2d_distance(last_pos, station)
             if dist < min_dist:
                 min_dist = dist

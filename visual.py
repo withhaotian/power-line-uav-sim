@@ -5,11 +5,12 @@ import numpy as np
 from environment import Environment
 from config import SPACE_SIZE
 from utils import *
+from logger import Logger
 
 # 设置全局字体为 Helvetica，并将默认字体大小设为 26
 plt.rcParams['font.family'] = 'Helvetica'
 
-def visualize_2d(env, save_fig = False):
+def visualize_2d(env, save_fig = False, save_path = False):
     fig, ax = plt.subplots(figsize=(10, 8))
 
     # 绘制电站位置
@@ -20,7 +21,7 @@ def visualize_2d(env, save_fig = False):
         # ax.text(station.position[0], station.position[1], f'PS {station.station_id}', color='blue')
 
     # 绘制 MST 电线连接
-    colors = list(iter(plt.cm.viridis(np.linspace(0, 1, len(env.drones)))))
+    # colors = list(iter(plt.cm.viridis(np.linspace(0, 1, len(env.drones)))))
     mst_edges = generate_mst(station_positions)
     for i, cluster in enumerate(env.clusters):
         def is_target_in_clusters(target, clusters):
@@ -33,29 +34,44 @@ def visualize_2d(env, save_fig = False):
             if is_this_cluster:
                 ax.plot([station_positions[u][0], station_positions[v][0]],
                         [station_positions[u][1], station_positions[v][1]], 
-                        color='black', linestyle='-', linewidth=2, alpha=0.3, zorder=11)
+                        color='black', linestyle='-', linewidth=2, alpha=0.5, zorder=11)
     
     # 绘制无人机路径
-    colors = iter(plt.cm.rainbow(np.linspace(0.4, 0.8, len(env.drones))))
-    for drone in env.drones:
-        path = drone.position_history
-        color = next(colors)
-        ax.plot([p[0] for p in path], [p[1] for p in path], color=color, linestyle='-', linewidth=2, alpha=0.6, zorder=10)
+    if save_path:
+        # colors = iter(plt.cm.rainbow(np.linspace(0.1, 0.9, len(env.drones))))
+        colors = iter(['#ca0020', '#f4a582', '#238b45', '#0571b0'])
+        for drone in env.drones:
+            path = drone.position_history
+            color = next(colors)
+            ax.plot([p[0] for p in path], [p[1] for p in path], color=color, linestyle='-', linewidth=2, alpha=1, zorder=10)
 
-        arrow_step = max(len(path) // 20, 1)  # 控制箭头密度
-        for i in range(0, len(path) - 1, arrow_step):
-            x = path[i][0]
-            y = path[i][1]
-            dx = path[i + 1][0] - x
-            dy = path[i + 1][1] - y
-            ax.quiver(x, y, dx, dy, angles='xy', scale_units='xy', scale=1, color=color, linestyle='--', width=0.005, headwidth=4, headlength=6)
+            arrow_step = max(len(path) // 20, 1)  # 控制箭头密度
+            for i in range(0, len(path) - 1, arrow_step):
+                x = path[i][0]
+                y = path[i][1]
+                dx = path[i + 1][0] - x
+                dy = path[i + 1][1] - y
+                ax.quiver(x, y, dx, dy, angles='xy', scale_units='xy', scale=1, color=color, linestyle='--', width=0.005, headwidth=4, headlength=6)
+            
+            # 在路径中点添加标注
+            pos = path[0]
+            offset_x = 120
+            offset_y = 120
+            if drone.drone_id == 1:
+                offset_x = -120
+                offset_y = -140
+            if drone.drone_id == 2:
+                offset_x = 120
+                offset_y = -140
+            ax.text(pos[0] + offset_x, pos[1]+ offset_y, f'UAV #{drone.drone_id+1}', color=color, fontsize=18, fontweight='bold', 
+                    ha='center', va='center')
 
     # 绘制基站位置及其覆盖范围圆圈
     for base in env.base_stations:
         # 基站标记
         ax.scatter(base.position[0], base.position[1], c='red', marker='s', s=100, edgecolors='black', linewidth=1.5,
-                   label='Base Station' if 'Base Station' not in ax.get_legend_handles_labels()[1] else "", zorder=10)
-        ax.text(base.position[0], base.position[1], f'BS {base.base_id}', color='red', fontsize=10, fontweight='bold')
+                   label='Base Station' if 'Base Station' not in ax.get_legend_handles_labels()[1] else "", zorder=1)
+        # ax.text(base.position[0], base.position[1], f'BS {base.base_id}', color='red', fontsize=10, fontweight='bold')
         
         # 覆盖范围圆圈
         circle = Circle((base.position[0], base.position[1]), COVERAGE_RADIUS, 
@@ -79,6 +95,8 @@ def visualize_2d(env, save_fig = False):
     plt.tight_layout()
     if save_fig:
         plt.savefig('2d_sim_env.pdf', dpi=300, bbox_inches='tight')
+    if save_path:
+        plt.savefig('experiments/uav_trajetory.pdf', dpi=300, bbox_inches='tight')
     plt.show()
 
 def visualize_3d(env, save_fig = False):
@@ -130,12 +148,13 @@ def visualize_3d(env, save_fig = False):
     plt.show()
 
 def run_simulation():
-    env = Environment(SPACE_SIZE)
-    env.initialize(num_drones=5, num_stations=20, num_base_stations=9)  # 初始化环境
+    logger = Logger()
+    env = Environment(SPACE_SIZE, logger)
+    env.initialize(num_drones=4, num_stations=20, num_base_stations=9)  # 初始化环境
 
     # env.update()  # 更新仿真状态
-    visualize_3d(env)
-    visualize_2d(env)
+    # visualize_3d(env, True)
+    visualize_2d(env, False, True)
 
 if __name__ == "__main__":
     run_simulation()
