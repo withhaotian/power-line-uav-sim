@@ -153,8 +153,8 @@ def run_simulation():
     env.initialize(num_drones=4, num_stations=20, num_base_stations=9)  # 初始化环境
 
     # env.update()  # 更新仿真状态
-    # visualize_3d(env, True)
-    visualize_2d(env, False, True)
+    visualize_3d(env, True)
+    # visualize_2d(env, False, True)
 
 if __name__ == "__main__":
     run_simulation()
