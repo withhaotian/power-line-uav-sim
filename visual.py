@@ -34,7 +34,7 @@ def visualize_2d(env, save_fig = False, save_path = False):
             if is_this_cluster:
                 ax.plot([station_positions[u][0], station_positions[v][0]],
                         [station_positions[u][1], station_positions[v][1]], 
-                        color='black', linestyle='-', linewidth=2, alpha=0.5, zorder=11)
+                        color='black', linestyle='-', label='Power Line' if 'Power Line' not in ax.get_legend_handles_labels()[1] else "", linewidth=2, alpha=0.5, zorder=11)
     
     # 绘制无人机路径
     if save_path:
@@ -125,7 +125,7 @@ def visualize_3d(env, save_fig = False):
         ax.plot([station_positions[u][0], station_positions[v][0]],
                 [station_positions[u][1], station_positions[v][1]],
                 [station_positions[u][2], station_positions[v][2]], 
-                color='gray', linestyle='-', linewidth=1.5, alpha=0.7, zorder=5)    
+                color='gray', linestyle='-', linewidth=1.5, label='Power Line' if 'Power Line' not in ax.get_legend_handles_labels()[1] else "", alpha=0.7,  zorder=5)    
     
     # 绘制固定无人机站点
     for site in DRONE_SITES:
@@ -154,7 +154,8 @@ def run_simulation():
 
     # env.update()  # 更新仿真状态
     visualize_3d(env, True)
-    # visualize_2d(env, False, True)
+    visualize_2d(env, False, True)
+    visualize_2d(env, True, False)
 
 if __name__ == "__main__":
     run_simulation()
